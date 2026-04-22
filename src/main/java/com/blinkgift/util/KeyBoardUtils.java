@@ -1,47 +1,70 @@
 package com.blinkgift.util;
 
-import com.blinkgift.data.ButtonData;
-import org.springframework.stereotype.Component;
+import lombok.experimental.UtilityClass;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
+import java.util.ArrayList;
 import java.util.List;
 
-@Component
+@UtilityClass
 public class KeyBoardUtils {
 
-    private static InlineKeyboardButton createButton(String text, Object callbackData) {
+    // Главное меню
+    public static InlineKeyboardMarkup createMainMenu() {
+        return createMarkup(List.of(
+                List.of(createButton("🪙 Криптовалюта", "STEP_GIVE")),
+                List.of(createButton("🏦 Банки", "MAIN_BANKS")),
+                List.of(createButton("💳 Платёжные системы", "MAIN_PAY_SYSTEMS")),
+                List.of(createButton("💵 Наличные", "MAIN_CASH"))
+        ));
+    }
+
+    // Меню выбора валют (используется для ОТДАЮ и ПОЛУЧАЮ)
+    // prefix: шаг (GIVE или RECEIVE)
+    // extraData: если это шаг RECEIVE, то тут лежит имя первой выбранной монеты
+    public static InlineKeyboardMarkup createCryptoMenu(String prefix, String extraData) {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        String[] coins = {"BNB BEP20", "Bitcoin", "Cardano (ADA)", "Chainlink (LINK)", "Cosmos (ATOM)", "Dash",
+                "Dogecoin", "Ethereum", "Litecoin", "Solana", "Toncoin", "Tron", "USDT TRC20", "USD Coin ERC20"};
+
+        for (int i = 0; i < coins.length; i += 2) {
+            String callback1 = prefix + ":" + coins[i] + (extraData != null ? ":" + extraData : "");
+            String callback2 = prefix + ":" + coins[i+1] + (extraData != null ? ":" + extraData : "");
+            rows.add(List.of(createButton(coins[i], callback1), createButton(coins[i+1], callback2)));
+        }
+
+        rows.add(List.of(createButton("⬅️ Назад", "BACK_TO_MAIN")));
+        return createMarkup(rows);
+    }
+
+    // Финальное меню с переходом на сайт
+    public static InlineKeyboardMarkup createExchangeFinalMenu(String giveCoin, String receiveCoin) {
+        String siteUrl = "https://your-exchange-site.com/?from=" + giveCoin + "&to=" + receiveCoin;
+
+        InlineKeyboardButton giveBtn = new InlineKeyboardButton();
+        giveBtn.setText("Отдать X кол-во " + giveCoin.split(" ")[0]);
+        giveBtn.setUrl(siteUrl);
+
+        InlineKeyboardButton receiveBtn = new InlineKeyboardButton();
+        receiveBtn.setText("Получить X кол-во " + receiveCoin.split(" ")[0]);
+        receiveBtn.setUrl(siteUrl);
+
+        return createMarkup(List.of(
+                List.of(giveBtn, receiveBtn),
+                List.of(createButton("⬅️ Назад", "STEP_GIVE")),
+                List.of(createButton("📁 Меню", "BACK_TO_MAIN"))
+        ));
+    }
+
+    private static InlineKeyboardButton createButton(String text, String callbackData) {
         InlineKeyboardButton button = new InlineKeyboardButton();
         button.setText(text);
-        button.setCallbackData(String.valueOf(callbackData));
+        button.setCallbackData(callbackData);
         return button;
     }
 
-    private static InlineKeyboardMarkup createMarkup(List<List<InlineKeyboardButton>> rows) {
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        markup.setKeyboard(rows);
-        return markup;
-    }
-
-    public static InlineKeyboardMarkup implementationOfCreateAdminMessageButton(Long formId) {
-        InlineKeyboardButton accept = createButton(
-                "✅ Принять",
-                ButtonData.ACCEPT_BUTTON + ":" + formId
-        );
-        InlineKeyboardButton reject = createButton(
-                "❌ Отклонить",
-                ButtonData.REJECT_BUTTON + ":" + formId
-        );
-        return createMarkup(List.of(List.of(accept, reject)));
-    }
-
-    public static InlineKeyboardMarkup createOpenAppButton() {
-        InlineKeyboardButton button = new InlineKeyboardButton();
-
-        button.setUrl("https://t.me/insnap_bot/app?startapp=market");
-
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
-        markup.setKeyboard(List.of(List.of(button)));
-        return markup;
+    private static InlineKeyboardMarkup createMarkup(List<List<InlineKeyboardButton>> keyboard) {
+        return InlineKeyboardMarkup.builder().keyboard(keyboard).build();
     }
 }
